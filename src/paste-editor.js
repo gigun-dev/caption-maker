@@ -39,11 +39,11 @@ const diagnosticState = StateField.define({
   provide: field => [EditorView.decorations.from(field, value => value.decorations), gutterLineClass.from(field, value => value.gutters)],
 });
 
-export function createPasteEditor(parent, onChange) {
+export function createPasteEditor(parent, onChange, initial = '') {
   const view = new EditorView({
     parent,
     state: EditorState.create({
-      doc: '',
+      doc: initial,
       extensions: [
         diagnosticState,
         lineNumbers(),
@@ -61,5 +61,6 @@ export function createPasteEditor(parent, onChange) {
     setWhitespace: enabled => view.dispatch({ effects: setWhitespace.of(enabled) }),
     focusRecord: line => { const target = view.state.doc.line(Math.max(1, Math.min(line, view.state.doc.lines))); view.dispatch({ selection: { anchor: target.from }, effects: EditorView.scrollIntoView(target.from, { y: 'center' }) }); view.focus(); },
     focus: () => view.focus(),
+    destroy: () => view.destroy(),
   };
 }

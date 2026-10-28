@@ -1,2 +1,4 @@
 import { defineConfig } from 'vite';
-export default defineConfig({base:'/caption-maker/'});
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+export default defineConfig({ base: '/caption-maker/', plugins: [react(), tailwindcss()] });

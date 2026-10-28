@@ -1,0 +1,24 @@
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx}";
+@import "@cloudflare/kumo/styles/tailwind";
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  background: var(--color-kumo-canvas);
+  color: var(--text-color-kumo-default, inherit);
+  font-family: system-ui, -apple-system, 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+}
+
+/* 貼り付けエディタ（CodeMirror）。空白の種類を見分けられるようにする。 */
+.paste-editor { font-size: 16px; }
+.paste-editor .cm-editor { min-height: 140px; max-height: 260px; background: var(--color-kumo-base); }
+.paste-editor .cm-editor.cm-focused { outline: none; }
+.paste-editor .cm-content { font-family: inherit; line-height: 1.6; min-height: 140px; padding: 8px 0; }
+.paste-editor .cm-scroller { overflow: auto; font-family: inherit; }
+.paste-editor .cm-gutters { border-right: 1px solid var(--color-kumo-line); background: var(--color-kumo-recessed); color: var(--color-kumo-subtle, #888); height: auto; align-self: stretch; }
+.paste-editor .cm-lineNumbers .cm-gutterElement { padding-right: 10px; }
+.paste-editor .cm-lineNumbers .cm-problem-number { background: #fff0ed; color: #a43e35; font-weight: 700; box-shadow: inset 3px 0 #a43e35; }
+.paste-editor .cm-space-half, .legend-half::before { background-image: radial-gradient(circle, #a43e35 1.3px, transparent 1.5px); background-position: center; background-repeat: no-repeat; }
+.paste-editor .cm-space-full, .legend-full::before { box-shadow: inset 0 0 0 1px #a43e35; }
+.paste-editor .cm-space-tab, .legend-tab::before { background: repeating-linear-gradient(90deg, transparent 0 5px, #a43e35 5px 6px, transparent 6px 11px); border-bottom: 1px solid #a43e35; }
+.editor-legend span::before { content: ''; display: inline-block; width: 1em; height: 1em; margin-right: 4px; vertical-align: -2px; }
