@@ -2,6 +2,8 @@
 
 作品データから A4・3列×6行のキャプション PDF を作る静的 Web アプリです。入力、保存、PDF の作成はブラウザ内で行います。
 
+公開版: https://gigun-dev.github.io/caption-maker/
+
 ## 使い方
 
 「作品データ」のセルを編集します。行番号から行の挿入・削除、列見出しから列名の変更・移動・削除ができます。「まとめて追加」では、表の貼り付けや CSV ファイルの読み込みができます。タブ、カンマ、半角・全角スペースなどを自動判定し、必要なら区切り文字を変更できます。読み取った内容を確認してから追加してください。列は現在の表の順番に対応します。CSV に表と一致する列名の見出しがあれば、その名前で対応付けます。
@@ -12,6 +14,6 @@
 
 ## 開発・公開
 
-Node.js 22 で `npm ci`、`npm run dev`。`npm run build` で `dist/` に静的ファイルを生成します。GitHub Pages の公開元を GitHub Actions に設定すると、main への push でデプロイされます。別の URL に配置するときは `vite.config.js` の base を変更してください。
+[Bun](https://bun.sh) で `bun install`、`bun run dev`。`bun test` でテスト、`bun run build` で `dist/` に静的ファイルを生成します。GitHub Pages の公開元を GitHub Actions に設定すると、main への push でデプロイされます。別の URL に配置するときは `vite.config.js` の base を変更してください。
 
 フォントは SIL Open Font License 1.1（`public/fonts/OFL.txt`）です。
