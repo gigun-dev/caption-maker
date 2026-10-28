@@ -35,8 +35,13 @@ jobs:
       - run: bun run build
       - name: Build previews
         run: |
+          # pipefail 下で grep -q が途中で読み終えると git log が失敗扱いになるため、先に書き出す。
+          git log origin/main --format=%T > "$RUNNER_TEMP/main-trees"
           for ref in $(git branch -r --no-merged origin/main --format='%(refname:short)'); do
+            [ "$ref" = "${ref#origin/}" ] && continue # origin/HEAD は "origin" と表示される
             branch="${ref#origin/}"
+            # squash マージ済みのブランチは、中身が main のどこかの時点と一致するので出さない。
+            grep -qx "$(git rev-parse "$ref^{tree}")" "$RUNNER_TEMP/main-trees" && continue
             dir="preview/$branch"
             echo "::group::$branch"
             git worktree add --detach "../wt-$branch" "$ref"
