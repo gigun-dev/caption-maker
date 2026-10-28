@@ -40,7 +40,7 @@ function RowHeader({ row, table }) {
 }
 
 function ValueCell({ row, column, table }) {
-  const { rows, onRows, columns } = table.options.meta;
+  const { rows, onRows, columns, onFocusRow } = table.options.meta;
   const name = columns.find(c => c.id === column.id)?.name ?? '';
   return (
     <input
@@ -49,6 +49,7 @@ function ValueCell({ row, column, table }) {
       placeholder={name}
       aria-label={`${row.index + 1}行目 ${name}`}
       data-row={row.index}
+      onFocus={() => onFocusRow(row.index)}
       onChange={event => onRows(rows.map((r, i) => i === row.index ? { ...r, [column.id]: event.target.value } : r))}
     />
   );
@@ -106,7 +107,7 @@ function RenameInput({ column, columns, onDone }) {
   );
 }
 
-export function WorksTable({ columns, rows, newRow, onRows, onColumns, onMessage }) {
+export function WorksTable({ columns, rows, newRow, onRows, onColumns, onMessage, onFocusRow }) {
   const [renaming, setRenaming] = useState(null);
   const [pending, setPending] = useState(null);
   const columnDefs = useMemo(() => [
@@ -139,7 +140,7 @@ export function WorksTable({ columns, rows, newRow, onRows, onColumns, onMessage
     columns: columnDefs,
     data: rows,
     getRowId: row => String(row._key),
-    meta: { columns, rows, onRows, onColumns, newRow, insertColumn, confirm, onRename: setRenaming },
+    meta: { columns, rows, onRows, onColumns, newRow, insertColumn, confirm, onRename: setRenaming, onFocusRow },
   });
 
   const addRow = () => {
@@ -150,18 +151,18 @@ export function WorksTable({ columns, rows, newRow, onRows, onColumns, onMessage
   return (
     <>
       <div className="overflow-x-auto rounded-lg border border-kumo-line bg-kumo-base" role="region" aria-label="作品の表" tabIndex={0}>
-        <Table layout="auto" style={{ minWidth: `${Math.max(320, 56 + columns.length * 120 + 56)}px` }}>
+        <Table layout="auto" className="[&_td]:p-0 [&_th]:px-1 [&_th]:py-2" style={{ minWidth: `${Math.max(320, 48 + columns.length * 120 + 48)}px` }}>
           <Table.Header>
             {table.getHeaderGroups().map(group => (
               <Table.Row key={group.id}>
                 {group.headers.map(header => (
-                  <Table.Head key={header.id} className={header.id === '_row' ? 'w-14' : ''}>
+                  <Table.Head key={header.id} className={header.id === '_row' ? 'w-12 px-1' : 'px-1'}>
                     {renaming === header.id
                       ? <RenameInput column={columns.find(c => c.id === header.id)} columns={columns} onDone={name => rename(header.id, name)} />
                       : <table.FlexRender header={header} />}
                   </Table.Head>
                 ))}
-                <Table.Head className="w-14">
+                <Table.Head className="w-12 px-1">
                   <Button variant="ghost" size="sm" shape="square" icon={<PlusIcon />} aria-label="列を追加" title="列を追加" onClick={() => insertColumn(columns.length)} />
                 </Table.Head>
               </Table.Row>
@@ -171,11 +172,11 @@ export function WorksTable({ columns, rows, newRow, onRows, onColumns, onMessage
             {table.getRowModel().rows.map(row => (
               <Table.Row key={row.id}>
                 {row.getAllCells().map(cell => (
-                  <Table.Cell key={cell.id} className={cell.column.id === '_row' ? 'w-14' : 'p-0'}>
+                  <Table.Cell key={cell.id} className={cell.column.id === '_row' ? 'w-12 px-1 py-0' : 'p-0'}>
                     <table.FlexRender cell={cell} />
                   </Table.Cell>
                 ))}
-                <Table.Cell aria-hidden="true" />
+                <Table.Cell aria-hidden="true" className="p-0" />
               </Table.Row>
             ))}
           </Table.Body>
