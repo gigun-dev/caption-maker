@@ -1,0 +1,25 @@
+name: Deploy PR previews
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+permissions:
+  contents: write
+  pull-requests: write
+concurrency: preview-${{ github.ref }}
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        if: github.event.action != 'closed'
+        with:
+          bun-version-file: package.json
+      - if: github.event.action != 'closed'
+        run: |
+          bun install --frozen-lockfile
+          bunx vite build --base /caption-maker/pr-preview/pr-${{ github.event.number }}/
+      - uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: dist
+          preview-branch: gh-pages

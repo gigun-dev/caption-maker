@@ -1,76 +1,28 @@
 name: Deploy to GitHub Pages
-# main は公開版として / に、main に未マージのブランチは確認用として /preview/<ブランチ名>/ に置く。
-# Pages へのデプロイは main からしか許可されないため、ブランチへの push は main のデプロイを呼び出す。
 on:
   push:
-  delete:
+    branches: [main]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
 jobs:
-  request:
-    if: github.ref != 'refs/heads/main'
+  deploy:
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
-        env:
-          GH_TOKEN: ${{ github.token }}
-  build:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: pages-build
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
       - run: bun install --frozen-lockfile
       - run: bun test
       - run: bun run build
-      - name: Build previews
-        run: |
-          # pipefail 下で grep -q が途中で読み終えると git log が失敗扱いになるため、先に書き出す。
-          git log origin/main --format=%T > "$RUNNER_TEMP/main-trees"
-          for ref in $(git branch -r --no-merged origin/main --format='%(refname:short)'); do
-            [ "$ref" = "${ref#origin/}" ] && continue # origin/HEAD は "origin" と表示される
-            branch="${ref#origin/}"
-            # squash マージ済みのブランチは、中身が main のどこかの時点と一致するので出さない。
-            grep -qx "$(git rev-parse "$ref^{tree}")" "$RUNNER_TEMP/main-trees" && continue
-            dir="preview/$branch"
-            echo "::group::$branch"
-            git worktree add --detach "../wt-$branch" "$ref"
-            (
-              cd "../wt-$branch"
-              bun install --frozen-lockfile
-              bunx vite build --base "/caption-maker/$dir/" --outDir "$GITHUB_WORKSPACE/dist/$dir"
-            ) || echo "::warning::$branch のビルドに失敗しました"
-            # PDF に使わないフォントは確認用には含めない。
-            rm -f "dist/$dir/fonts/NotoSansJP.ttf"
-            echo "::endgroup::"
-          done
-          ls dist/preview 2>/dev/null || true
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    concurrency:
-      group: pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          folder: dist
+          branch: gh-pages
+          # PR プレビュー（pr-preview/）を消したり上書きしたりしない。
+          clean-exclude: pr-preview/
+          force: false
