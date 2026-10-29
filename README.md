@@ -14,6 +14,6 @@
 
 ## 開発・公開
 
-[Bun](https://bun.sh) で `bun install`、`bun run dev`。`bun test` でテスト、`bun run build` で `dist/` に静的ファイルを生成します。GitHub Pages の公開元を GitHub Actions に設定すると、main への push でデプロイされます。別の URL に配置するときは `vite.config.js` の base を変更してください。
+[Bun](https://bun.sh) で `bun install`、`bun run dev`。`bun test` でテスト、`bun run build` で `dist/` に静的ファイルを生成します。main への push で `gh-pages` ブランチにデプロイされます（GitHub Pages の公開元は `gh-pages` ブランチ）。プルリクエストを開くと、確認用ページ（`/pr-preview/pr-番号/`）の URL がコメントで届きます。別の URL に配置するときは `vite.config.js` の base を変更してください。
 
 フォントは SIL Open Font License 1.1（`public/fonts/OFL.txt`）です。
