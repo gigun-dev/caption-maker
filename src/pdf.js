@@ -1,38 +1,65 @@
-import { PDFDocument, rgb } from 'pdf-lib';
+import { generate } from '@pdfme/generator';
+import { rectangle, text } from '@pdfme/schemas';
 import fontkit from '@pdf-lib/fontkit';
 
+const pt = value => value * 25.4 / 72;
+const PAGE_WIDTH = 595, PAGE_HEIGHT = 842, CARD_WIDTH = 181, CARD_HEIGHT = 130, GAP = 8;
+
+function rectangleSchema(name, x, y, width, height, color, borderColor = color, borderWidth = 0) {
+  return { name, type: 'rectangle', position: { x: pt(x), y: pt(y) }, width: pt(width), height: pt(height), color, borderColor, borderWidth: pt(borderWidth) };
+}
+
+function textSchema(name, x, y, fontSize) {
+  return {
+    name, type: 'text', position: { x: pt(x), y: pt(y) }, width: pt(149), height: pt(20),
+    alignment: 'center', verticalAlignment: 'middle', fontName: 'NotoSansJP', fontSize,
+    lineHeight: 1, characterSpacing: 0, fontColor: '#000000', backgroundColor: '',
+    dynamicFontSize: { min: 5, max: fontSize, fit: 'horizontal' },
+  };
+}
+
 export async function makePdf(rows, fields = ['title', 'author']) {
-  const pdf = await PDFDocument.create();
-  pdf.registerFontkit(fontkit);
+  if (!rows.length) throw new Error('作品を1件以上入力してください。');
   const response = await fetch(`${import.meta.env?.BASE_URL ?? '/'}fonts/NotoSansJP-Regular.ttf`);
   if (!response.ok) throw new Error('フォントを読み込めませんでした。');
-  // fontkit のサブセットは一部のビューアでグリフを欠落させるため、静的フォント全体を埋め込む。
-  const font = await pdf.embedFont(await response.arrayBuffer(), { subset: false });
-  const supported = new Set(font.getCharacterSet());
-  const width = 595, height = 842, cardW = 181, cardH = 130, gap = 8;
+  const fontData = new Uint8Array(await response.arrayBuffer());
+  const font = fontkit.create(fontData);
+  const supported = new Set(font.characterSet);
+  const schemas = [];
+  const input = {};
+
   for (let i = 0; i < rows.length; i += 18) {
-    const page = pdf.addPage([width, height]);
+    const page = [];
     for (let n = 0; n < 18 && i + n < rows.length; n++) {
       const row = rows[i + n];
-      const title = fields[0] === 'none' ? '' : String(row[fields[0]] || '').trim();
-      const author = fields[1] === 'none' ? '' : String(row[fields[1]] || '').trim();
-      for (const [line, text] of [title, author].entries()) {
-        if (/[\r\n]/.test(text)) throw new Error(`${i+n+1}件目の${line+1}行目には改行を使えません。`);
-        const unsupported = [...text].find(char => !supported.has(char.codePointAt(0)));
+      const values = fields.map(field => field === 'none' ? '' : String(row[field] || '').trim());
+      for (const [line, value] of values.entries()) {
+        if (/[\r\n]/.test(value)) throw new Error(`${i+n+1}件目の${line+1}行目には改行を使えません。`);
+        const unsupported = [...value].find(char => !supported.has(char.codePointAt(0)));
         if (unsupported) throw new Error(`${i+n+1}件目の${line+1}行目に表示できない文字「${unsupported}」があります。`);
+        const width = font.layout(value).glyphs.reduce((sum, glyph) => sum + glyph.advanceWidth, 0) * 5 / font.unitsPerEm;
+        if (width > 149) throw new Error(`${i+n+1}行目の文字が長すぎます。短くしてください。`);
       }
-      const x = 18 + (n % 3) * (cardW + gap);
-      const top = 11 + Math.floor(n / 3) * (cardH + gap);
-      const centerX = x + cardW / 2;
-      const fit = (text, max, size) => { while (size > 5 && font.widthOfTextAtSize(text, size) > max) size -= .25; return size; };
-      const titleSize = fit(title, 149, 12), authorSize = fit(author, 149, 8);
-      if (font.widthOfTextAtSize(title, titleSize) > 149 || font.widthOfTextAtSize(author, authorSize) > 149) throw new Error(`${i+n+1}行目の文字が長すぎます。短くしてください。`);
-      const y = height - top;
-      page.drawRectangle({ x: x + 0.5, y: y - cardH + 0.5, width: cardW - 1, height: cardH - 1, borderWidth: 1, borderColor: rgb(187 / 255, 187 / 255, 187 / 255) });
-      page.drawText(title, { x: centerX - font.widthOfTextAtSize(title, titleSize)/2, y: y - 49, size: titleSize, font, color: rgb(0,0,0) });
-      page.drawLine({ start: {x:x+16,y:y-65}, end:{x:x+165,y:y-65}, thickness:1, color:rgb(0,0,0) });
-      page.drawText(author, { x:centerX-font.widthOfTextAtSize(author,authorSize)/2, y:y-83, size:authorSize, font, color:rgb(0,0,0) });
+      const x = 18 + (n % 3) * (CARD_WIDTH + GAP);
+      const top = 11 + Math.floor(n / 3) * (CARD_HEIGHT + GAP);
+      const prefix = `card${i+n}`;
+      page.push(
+        rectangleSchema(`${prefix}-frame`, x + 0.5, top + 0.5, CARD_WIDTH - 1, CARD_HEIGHT - 1, '', '#bbbbbb', 1),
+        rectangleSchema(`${prefix}-line`, x + 16, top + 64.5, 149, 1, '#000000'),
+        textSchema(`${prefix}-title`, x + 16, top + 33.75, 12),
+        textSchema(`${prefix}-author`, x + 16, top + 70, 8),
+      );
+      input[`${prefix}-frame`] = ' ';
+      input[`${prefix}-line`] = ' ';
+      input[`${prefix}-title`] = values[0];
+      input[`${prefix}-author`] = values[1];
     }
+    schemas.push(page);
   }
-  return pdf.save();
+  return generate({
+    template: { basePdf: { width: pt(PAGE_WIDTH), height: pt(PAGE_HEIGHT), padding: [0, 0, 0, 0] }, schemas },
+    inputs: [input],
+    plugins: { text, rectangle },
+    options: { font: { NotoSansJP: { data: fontData, fallback: true, subset: false } } },
+  });
 }
