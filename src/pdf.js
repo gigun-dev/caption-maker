@@ -28,6 +28,7 @@ export async function makePdf(rows, fields = ['title', 'author']) {
       const titleSize = fit(title, 149, 12), authorSize = fit(author, 149, 8);
       if (font.widthOfTextAtSize(title, titleSize) > 149 || font.widthOfTextAtSize(author, authorSize) > 149) throw new Error(`${i+n+1}行目の文字が長すぎます。短くしてください。`);
       const y = height - top;
+      page.drawRectangle({ x: x + 0.5, y: y - cardH + 0.5, width: cardW - 1, height: cardH - 1, borderWidth: 1, borderColor: rgb(187 / 255, 187 / 255, 187 / 255) });
       page.drawText(title, { x: centerX - font.widthOfTextAtSize(title, titleSize)/2, y: y - 49, size: titleSize, font, color: rgb(0,0,0) });
       page.drawLine({ start: {x:x+16,y:y-65}, end:{x:x+165,y:y-65}, thickness:1, color:rgb(0,0,0) });
       page.drawText(author, { x:centerX-font.widthOfTextAtSize(author,authorSize)/2, y:y-83, size:authorSize, font, color:rgb(0,0,0) });
